@@ -100,17 +100,6 @@ int main()		{
 
     printf("Starting.... HW\n");
     // Ask for a convolution
-    // XDoimgproc_Write_kernel_Bytes(&doImgProc,0,kernel,9);
-    /*
-    printf("Kernel total bytes: %d Bitwidth:%d Base: 0x%X\n",
-        XDoimgproc_Get_kernel_TotalBytes(&doImgProc),
-        XDoimgproc_Get_kernel_BitWidth(&doImgProc),
-        XDoimgproc_Get_kernel_BaseAddress(&doImgProc));*/
-
-    XDoconvolutionsyn_Set_inputChannels(&doConvolutionSyn, INPUT_IMG_CHANNELS);
-    XDoconvolutionsyn_Set_inputRows(&doConvolutionSyn, IMG_HEIGHT_OR_ROWS);
-    XDoconvolutionsyn_Set_inputCols(&doConvolutionSyn, IMG_WIDTH_OR_COLS);
-    XDoconvolutionsyn_Set_outputChannels(&doConvolutionSyn, OUTPUT_IMG_CHANNELS);
     XDoconvolutionsyn_Set_relu(&doConvolutionSyn, false);
 
     XDoconvolutionsyn_Start(&doConvolutionSyn);
@@ -121,7 +110,7 @@ int main()		{
     Xil_DCacheFlushRange((u32)conv1_w_HW, WEIGHT_SIZE * sizeof(u32));
     Xil_DCacheFlushRange((u32)conv1_b_HW, BIAS_SIZE * sizeof(u32));
     //Xil_DCacheFlushRange((u32)m_dma_buffer_RX, OUTPUT_SIZE * sizeof(float));
-    Xil_DCacheFlushRange((u32)res_hw, OUTPUT_SIZE * sizeof(u32));
+    Xil_DCacheFlushRange((u32)m_dma_buffer_RX, OUTPUT_SIZE * sizeof(u32));
 
 
     status = XAxiDma_SimpleTransfer(&axiDmaImg, (u32)imgIn_HW, INPUT_SIZE * sizeof(u32), XAXIDMA_DMA_TO_DEVICE);
@@ -155,26 +144,16 @@ int main()		{
     while (XAxiDma_Busy(&axiDmaImg, XAXIDMA_DEVICE_TO_DMA));
 
     // Invalidate the cache to avoid reading garbage
-    Xil_DCacheInvalidateRange((u32)m_dma_buffer_RX, (OUTPUT_SIZE + 1) * sizeof(u32));
+    Xil_DCacheInvalidateRange((u32)m_dma_buffer_RX, OUTPUT_SIZE * sizeof(u32));
     axiTimer.stopTimer();
 
     double HW_elapsed = axiTimer.getElapsedTimerInSeconds();
     printf("HW execution time: %f sec\n", HW_elapsed);
 
-/*
-    int imgMismatch = 0;
-	for (int i = 0; i < OUTPUT_SIZE; i++)
-		if (res_sw[i] != res_hw[i])		{
-			printf ("Invalid response\n");
-			imgMismatch = 1;
-		}
-	if (!imgMismatch)
-		printf ("SW and HW images are the same \n");*/
     for (int i = 0; i < 10; i++)
     	printf("Value of res_sw[%d] is %f\n", i, res_sw[i]);
     for (int i = 140784; i < 140800; i++)
     	printf("Value of res_hw[%d] is %f\n", i, fixed2float(m_dma_buffer_RX[i], 32, 16));
-    	//printBits(4, res_hw + i);
 
     return 0;
 }
